@@ -1,14 +1,21 @@
 package com.spring.myapp.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
 
+@Schema(description = "Stable pageable response")
 public class PageResponse<T> {
+    @Schema(description = "Items on the current page")
     private List<T> content;
+    @Schema(description = "Zero-based page number", example = "0")
     private int page;
+    @Schema(description = "Requested page size", example = "20")
     private int size;
+    @Schema(example = "42")
     private long totalElements;
+    @Schema(example = "3")
     private int totalPages;
 
     public PageResponse(List<T> content, int page, int size, long totalElements, int totalPages) {
