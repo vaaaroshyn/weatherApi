@@ -263,7 +263,6 @@ The main integration tests use Testcontainers with PostgreSQL. They do not use H
 The following items are not implemented:
 
 - Authentication and authorization.
-- CI pipeline.
 - Cloud deployment configuration.
 - Rate limiting.
 - Observability with metrics and tracing.
