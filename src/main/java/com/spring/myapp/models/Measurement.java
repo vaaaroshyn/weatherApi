@@ -8,30 +8,30 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Measurement")
+@Table(name = "measurements")
 public class Measurement {
     @Id
     @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "value")
+    @Column(name = "value", nullable = false)
     @NotNull
     @Min(-100)
     @Max(100)
     private Double value;
 
-    @Column(name = "raining")
+    @Column(name = "raining", nullable = false)
     @NotNull
     private Boolean raining;
 
-    @Column(name = "measurement_date_time")
+    @Column(name = "measured_at", nullable = false)
     @NotNull
     private LocalDateTime measurementDateTime;
 
     @NotNull
     @ManyToOne
-    @JoinColumn(name = "sensor", referencedColumnName = "name")
+    @JoinColumn(name = "sensor_id", nullable = false)
     private Sensor sensor;
 
     public Integer getId() {

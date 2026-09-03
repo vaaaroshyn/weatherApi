@@ -1,8 +1,9 @@
 package com.spring.myapp.services;
 
+import com.spring.myapp.exceptions.SensorAlreadyExistsException;
 import com.spring.myapp.models.Sensor;
 import com.spring.myapp.repositories.SensorRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,7 +15,6 @@ public class SensorService {
 
     private final SensorRepository sensorRepository;
 
-    @Autowired
     public SensorService(SensorRepository sensorRepository) {
         this.sensorRepository = sensorRepository;
     }
@@ -25,6 +25,14 @@ public class SensorService {
 
     @Transactional
     public void register(Sensor sensor) {
-        sensorRepository.save(sensor);
+        if (sensorRepository.existsByName(sensor.getName())) {
+            throw new SensorAlreadyExistsException();
+        }
+
+        try {
+            sensorRepository.saveAndFlush(sensor);
+        } catch (DataIntegrityViolationException e) {
+            throw new SensorAlreadyExistsException(e);
+        }
     }
 }
