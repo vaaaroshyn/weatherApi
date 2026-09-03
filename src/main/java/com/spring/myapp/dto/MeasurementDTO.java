@@ -1,5 +1,6 @@
 package com.spring.myapp.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -14,6 +15,7 @@ public class MeasurementDTO {
     private Boolean isRaining;
 
     @NotNull
+    @Valid
     private SensorDTO sensor;
 
     public Double getValue() {
