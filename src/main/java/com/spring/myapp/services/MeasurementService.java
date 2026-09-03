@@ -4,11 +4,12 @@ import com.spring.myapp.exceptions.SensorNotFoundException;
 import com.spring.myapp.models.Measurement;
 import com.spring.myapp.models.Sensor;
 import com.spring.myapp.repositories.MeasurementRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
@@ -23,8 +24,12 @@ public class MeasurementService {
         this.sensorService = sensorService;
     }
 
-    public List<Measurement> findAll() {
-        return measurementRepository.findAll();
+    public Page<Measurement> findAll(Pageable pageable) {
+        return measurementRepository.findAll(pageable);
+    }
+
+    public long countRainyMeasurements() {
+        return measurementRepository.countByRainingTrue();
     }
 
     @Transactional

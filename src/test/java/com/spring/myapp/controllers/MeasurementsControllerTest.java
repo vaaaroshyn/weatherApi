@@ -9,15 +9,22 @@ import com.spring.myapp.models.Sensor;
 import com.spring.myapp.services.MeasurementService;
 import org.junit.jupiter.api.Test;
 import org.modelmapper.ModelMapper;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -106,22 +113,77 @@ class MeasurementsControllerTest {
     }
 
     @Test
-    void getMeasurementsReturnsDtoResponse() throws Exception {
-        Measurement measurement = measurement(false);
-        MeasurementDTO measurementDTO = measurementDto(false);
-        when(measurementService.findAll()).thenReturn(List.of(measurement));
-        when(modelMapper.map(measurement, MeasurementDTO.class)).thenReturn(measurementDTO);
+    void getMeasurementsReturnsFirstPage() throws Exception {
+        Pageable pageable = PageRequest.of(0, 1);
+        when(measurementService.findAll(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(measurement(1, false)), pageable, 2));
 
-        mockMvc.perform(get("/api/v1/measurements"))
+        mockMvc.perform(get("/api/v1/measurements")
+                        .param("page", "0")
+                        .param("size", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.measurements[0].value").value(12.5))
-                .andExpect(jsonPath("$.measurements[0].raining").value(false))
-                .andExpect(jsonPath("$.measurements[0].sensor.name").value("outside"));
+                .andExpect(jsonPath("$.content[0].id").value(1))
+                .andExpect(jsonPath("$.content[0].value").value(12.5))
+                .andExpect(jsonPath("$.content[0].raining").value(false))
+                .andExpect(jsonPath("$.content[0].measuredAt").value("2026-09-03T08:00:00"))
+                .andExpect(jsonPath("$.content[0].sensor.id").value(10))
+                .andExpect(jsonPath("$.content[0].sensor.name").value("outside"))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2));
+    }
+
+    @Test
+    void getMeasurementsReturnsNextPage() throws Exception {
+        Pageable pageable = PageRequest.of(1, 1);
+        when(measurementService.findAll(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(measurement(2, true)), pageable, 2));
+
+        mockMvc.perform(get("/api/v1/measurements")
+                        .param("page", "1")
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(2))
+                .andExpect(jsonPath("$.content[0].raining").value(true))
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2));
+    }
+
+    @Test
+    void getMeasurementsPassesSortToService() throws Exception {
+        when(measurementService.findAll(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        mockMvc.perform(get("/api/v1/measurements")
+                        .param("sort", "value,desc"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(measurementService).findAll(pageableCaptor.capture());
+        Sort.Order order = pageableCaptor.getValue().getSort().getOrderFor("value");
+        assertEquals(Sort.Direction.DESC, order.getDirection());
+    }
+
+    @Test
+    void getMeasurementsCapsOversizedPageSize() throws Exception {
+        when(measurementService.findAll(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 100), 0));
+
+        mockMvc.perform(get("/api/v1/measurements")
+                        .param("size", "500"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(measurementService).findAll(pageableCaptor.capture());
+        assertEquals(100, pageableCaptor.getValue().getPageSize());
     }
 
     @Test
     void getRainyDaysCountReturnsCount() throws Exception {
-        when(measurementService.findAll()).thenReturn(List.of(measurement(true), measurement(false)));
+        when(measurementService.countRainyMeasurements()).thenReturn(1L);
 
         mockMvc.perform(get("/api/v1/measurements/rainy-days/count"))
                 .andExpect(status().isOk())
@@ -143,12 +205,19 @@ class MeasurementsControllerTest {
     }
 
     private Measurement measurement(Boolean raining) {
+        return measurement(1, raining);
+    }
+
+    private Measurement measurement(Integer id, Boolean raining) {
         Sensor sensor = new Sensor();
+        sensor.setId(10);
         sensor.setName("outside");
 
         Measurement measurement = new Measurement();
+        measurement.setId(id);
         measurement.setValue(12.5);
         measurement.setRaining(raining);
+        measurement.setMeasurementDateTime(LocalDateTime.of(2026, 9, 3, 8, 0));
         measurement.setSensor(sensor);
         return measurement;
     }

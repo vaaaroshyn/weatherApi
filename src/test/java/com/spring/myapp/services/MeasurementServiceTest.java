@@ -9,12 +9,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,6 +35,26 @@ class MeasurementServiceTest {
 
     @InjectMocks
     private MeasurementService measurementService;
+
+    @Test
+    void findAllUsesRepositoryPageQuery() {
+        Pageable pageable = PageRequest.of(0, 20);
+        when(measurementRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        measurementService.findAll(pageable);
+
+        verify(measurementRepository).findAll(pageable);
+    }
+
+    @Test
+    void countRainyMeasurementsUsesDatabaseCountQuery() {
+        when(measurementRepository.countByRainingTrue()).thenReturn(3L);
+
+        long count = measurementService.countRainyMeasurements();
+
+        assertEquals(3L, count);
+        verify(measurementRepository).countByRainingTrue();
+    }
 
     @Test
     void addMeasurementUsesRegisteredSensorAndSetsMeasuredAt() {
