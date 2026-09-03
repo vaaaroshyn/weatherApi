@@ -99,6 +99,39 @@ class MeasurementsControllerTest {
     }
 
     @Test
+    void missingTemperatureReturnsBadRequestApiError() throws Exception {
+        mockMvc.perform(post("/api/v1/measurements")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"raining":false,"sensor":{"name":"outside"}}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("value - must not be null")));
+    }
+
+    @Test
+    void temperatureBelowAllowedRangeReturnsBadRequestApiError() throws Exception {
+        mockMvc.perform(post("/api/v1/measurements")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"value":-101,"raining":false,"sensor":{"name":"outside"}}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("value - must be greater than or equal to -100")));
+    }
+
+    @Test
+    void missingRainingReturnsBadRequestApiError() throws Exception {
+        mockMvc.perform(post("/api/v1/measurements")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"value":12.5,"sensor":{"name":"outside"}}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("raining - must not be null")));
+    }
+
+    @Test
     void invalidJsonReturnsBadRequestApiError() throws Exception {
         mockMvc.perform(post("/api/v1/measurements")
                         .contentType(MediaType.APPLICATION_JSON)

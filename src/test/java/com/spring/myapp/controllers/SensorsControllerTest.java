@@ -85,6 +85,25 @@ class SensorsControllerTest {
                 .andExpect(jsonPath("$.path").value("/api/v1/sensors"));
     }
 
+    @Test
+    void blankSensorNameReturnsBadRequestApiError() throws Exception {
+        mockMvc.perform(post("/api/v1/sensors")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sensorDto(""))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("name - The name should not be blank!")));
+    }
+
+    @Test
+    void tooLongSensorNameReturnsBadRequestApiError() throws Exception {
+        mockMvc.perform(post("/api/v1/sensors")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sensorDto("x".repeat(31)))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString(
+                        "name - The name of the sensor must be between 3 and 30 characters!")));
+    }
+
     private SensorDTO sensorDto(String name) {
         SensorDTO sensorDTO = new SensorDTO();
         sensorDTO.setName(name);
