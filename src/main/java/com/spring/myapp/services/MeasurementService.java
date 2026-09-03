@@ -1,6 +1,8 @@
 package com.spring.myapp.services;
 
+import com.spring.myapp.exceptions.SensorNotFoundException;
 import com.spring.myapp.models.Measurement;
+import com.spring.myapp.models.Sensor;
 import com.spring.myapp.repositories.MeasurementRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,13 +29,18 @@ public class MeasurementService {
 
     @Transactional
     public void addMeasurement(Measurement measurement) {
-        enrichMeasurement(measurement);
+        Sensor sensor = findRegisteredSensor(measurement);
+        measurement.setSensor(sensor);
+        measurement.setMeasurementDateTime(LocalDateTime.now());
         measurementRepository.save(measurement);
     }
 
-    public void enrichMeasurement(Measurement measurement) {
-        measurement.setSensor(sensorService.findByName(measurement.getSensor().getName()).get());
+    private Sensor findRegisteredSensor(Measurement measurement) {
+        if (measurement.getSensor() == null || measurement.getSensor().getName() == null) {
+            throw new SensorNotFoundException();
+        }
 
-        measurement.setMeasurementDateTime(LocalDateTime.now());
+        return sensorService.findByName(measurement.getSensor().getName())
+                .orElseThrow(SensorNotFoundException::new);
     }
 }

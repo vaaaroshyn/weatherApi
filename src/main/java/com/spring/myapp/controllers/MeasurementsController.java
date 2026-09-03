@@ -2,14 +2,13 @@ package com.spring.myapp.controllers;
 
 import com.spring.myapp.dto.MeasurementDTO;
 import com.spring.myapp.dto.MeasurementsResponse;
+import com.spring.myapp.exceptions.SensorNotFoundException;
 import com.spring.myapp.models.Measurement;
 import com.spring.myapp.services.MeasurementService;
 import com.spring.myapp.util.MeasurementErrorResponse;
 import com.spring.myapp.util.MeasurementException;
-import com.spring.myapp.util.MeasurementValidator;
 import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -25,27 +24,21 @@ import static com.spring.myapp.util.ErrorsUtil.returnErrorsToClient;
 public class MeasurementsController {
 
     private final MeasurementService measurementService;
-    private final MeasurementValidator measurementValidator;
     private final ModelMapper modelMapper;
 
-    @Autowired
     public MeasurementsController(MeasurementService measurementService,
-                                  MeasurementValidator measurementValidator,
                                   ModelMapper modelMapper) {
         this.measurementService = measurementService;
-        this.measurementValidator = measurementValidator;
         this.modelMapper = modelMapper;
     }
 
     @PostMapping("/add")
     public ResponseEntity<HttpStatus> add(@RequestBody @Valid MeasurementDTO measurementDTO,
                                           BindingResult bindingResult) {
-        Measurement measurementToAdd = convertToMeasurement(measurementDTO);
-
-        measurementValidator.validate(measurementToAdd, bindingResult);
         if (bindingResult.hasErrors())
             returnErrorsToClient(bindingResult);
 
+        Measurement measurementToAdd = convertToMeasurement(measurementDTO);
         measurementService.addMeasurement(measurementToAdd);
         return ResponseEntity.ok(HttpStatus.OK);
     }
@@ -69,8 +62,8 @@ public class MeasurementsController {
         return modelMapper.map(measurement, MeasurementDTO.class);
     }
 
-    @ExceptionHandler
-    private ResponseEntity<MeasurementErrorResponse> handleException(MeasurementException e) {
+    @ExceptionHandler({MeasurementException.class, SensorNotFoundException.class})
+    private ResponseEntity<MeasurementErrorResponse> handleException(RuntimeException e) {
         MeasurementErrorResponse response = new MeasurementErrorResponse(
                 e.getMessage(),
                 System.currentTimeMillis()
